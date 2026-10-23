@@ -21,3 +21,16 @@ def test_settings_fail_fast_when_required_variable_missing(monkeypatch, missing_
 
     error_fields = {error["loc"][0] for error in exc_info.value.errors()}
     assert missing_var.lower() in error_fields
+
+def test_optional_settings_use_srs_defaults(monkeypatch):
+    """NFR-CFG-001: optional settings fall back to their documented defaults."""
+    for name, value in VALID_ENV.items():
+        monkeypatch.setenv(name, value)
+    for name in ("JWT_EXPIRES_MINUTES", "CORS_ORIGINS", "TEST_DATABASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.jwt_expires_minutes == 30
+    assert settings.cors_origins == ["http://localhost:5173"]
+    assert settings.test_database_url is None
