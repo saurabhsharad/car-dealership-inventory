@@ -42,10 +42,16 @@ def test_optional_settings_use_srs_defaults(monkeypatch):
     assert settings.test_database_url is None
 
 @pytest.mark.usefixtures("required_env")
+@pytest.fixture
+def clear_settings_cache():
+    """Run the test with an empty get_settings cache and leave it empty afterwards."""
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+@pytest.mark.usefixtures("required_env", "clear_settings_cache")
 def test_get_settings_returns_one_cached_instance():
     """SRS §8.1: settings are loaded once and reused."""
     first = get_settings()
     second = get_settings()
 
     assert first is second
-    get_settings.cache_clear()    
