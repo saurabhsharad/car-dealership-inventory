@@ -1,4 +1,7 @@
+from alembic import command
 from sqlalchemy import Inspector, inspect
+
+from tests.support.database import alembic_config
 
 
 def constraint_names(inspector: Inspector, table: str) -> set[str]:
@@ -37,3 +40,9 @@ def test_migrations_create_every_named_constraint(db_engine):
         "ck_vehicles_price_positive",
         "ck_vehicles_stock_non_negative",
     }
+
+
+def test_models_match_migrations(db_engine):
+    """Drift guard: alembic check finds no model change lacking a migration."""
+    with db_engine.connect() as connection:
+        command.check(alembic_config(connection))
