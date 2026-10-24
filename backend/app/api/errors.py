@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.services.errors import (
     DomainError,
     EmailAlreadyRegisteredError,
+    ForbiddenError,
     InvalidCredentialsError,
     NotAuthenticatedError,
     SessionExpiredError,
@@ -36,6 +37,7 @@ DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
         "TOKEN_EXPIRED",
         "Your session has expired. Please log in again.",
     ),
+    ForbiddenError: (403, "FORBIDDEN", "Admin access required."),
 }
 
 

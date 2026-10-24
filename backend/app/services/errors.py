@@ -16,3 +16,7 @@ class NotAuthenticatedError(DomainError):
 
 class SessionExpiredError(DomainError):
     """The bearer token was genuine but has expired (FR-AUTH-006)."""
+
+
+class ForbiddenError(DomainError):
+    """The user is authenticated but not allowed to do this (FR-AUTH-007)."""

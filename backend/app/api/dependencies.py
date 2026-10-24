@@ -7,7 +7,11 @@ from app.core.config import Settings, get_settings
 from app.core.tokens import InvalidTokenError, TokenExpiredError, decode_access_token
 from app.db.session import DbSession
 from app.models import User
-from app.services.errors import NotAuthenticatedError, SessionExpiredError
+from app.services.errors import (
+    ForbiddenError,
+    NotAuthenticatedError,
+    SessionExpiredError,
+)
 
 AppSettings = Annotated[Settings, Depends(get_settings)]
 
@@ -42,7 +46,13 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 def require_admin(user: CurrentUser) -> User:
-    """Placeholder: lets every logged-in user through, admin or not."""
+    """The current user, who must be an admin (FR-AUTH-007).
+
+    The role comes from the user row loaded for this request, never from
+    the token, so a role change applies immediately (NFR-SEC-003).
+    """
+    if user.role != "admin":
+        raise ForbiddenError
     return user
 
 
