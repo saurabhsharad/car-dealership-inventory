@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from tests.support.database import rebuild_schema, require_test_database_url
@@ -18,3 +19,16 @@ def db_engine():
         rebuild_schema(connection)
     yield engine
     engine.dispose()
+
+
+@pytest.fixture
+def db_session(db_engine):
+    """Session whose work, commits included, is rolled back after the test."""
+    with db_engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(bind=connection, join_transaction_mode="create_savepoint")
+        try:
+            yield session
+        finally:
+            session.close()
+            transaction.rollback()
