@@ -1,8 +1,9 @@
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.db.base import Base
 from tests.support.database import rebuild_schema, require_test_database_url
 
 
@@ -32,3 +33,17 @@ def db_session(db_engine):
         finally:
             session.close()
             transaction.rollback()
+
+
+@pytest.fixture
+def committed_db(db_engine):
+    """Engine for tests that really commit; every table is emptied around them."""
+
+    def empty_all_tables() -> None:
+        tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
+        with db_engine.begin() as connection:
+            connection.execute(text(f"TRUNCATE {tables} RESTART IDENTITY"))
+
+    empty_all_tables()
+    yield db_engine
+    empty_all_tables()
