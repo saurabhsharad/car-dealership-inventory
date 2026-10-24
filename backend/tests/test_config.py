@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
-from pathlib import Path
 
 from app.core.config import Settings, get_settings
 
@@ -59,6 +60,7 @@ def test_get_settings_returns_one_cached_instance():
 
     assert first is second
 
+
 @pytest.mark.usefixtures("required_env")
 def test_jwt_secret_key_is_hidden_when_settings_are_printed(monkeypatch):
     """NFR-SEC-008: the JWT secret never appears when settings are printed or logged."""
@@ -69,16 +71,19 @@ def test_jwt_secret_key_is_hidden_when_settings_are_printed(monkeypatch):
 
     assert secret not in repr(settings)
     assert secret not in str(settings)
-    assert settings.jwt_secret_key.get_secret_value() == secret    
+    assert settings.jwt_secret_key.get_secret_value() == secret
+
 
 def test_settings_read_dotenv_from_backend_directory():
-    """Settings read backend/.env regardless of the directory the app is started from."""
+    """Settings read backend/.env wherever the app is started from."""
     expected = Path(__file__).resolve().parents[1] / ".env"
 
     assert Settings.model_config.get("env_file") == expected
+
+
 @pytest.mark.usefixtures("required_env")
 def test_jwt_secret_key_shorter_than_32_characters_is_rejected(monkeypatch):
-    """NFR-SEC-002 / NFR-SEC-008: a short JWT secret is rejected without being echoed."""
+    """NFR-SEC-002/008: a short JWT secret is rejected and not echoed."""
     short_secret = "short-secret-" + "s" * 18  # 31 characters
     monkeypatch.setenv("JWT_SECRET_KEY", short_secret)
 
