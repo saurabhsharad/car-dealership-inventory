@@ -6,9 +6,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.services.errors import DomainError, EmailAlreadyRegisteredError
+
 HTTP_ERRORS = {
     404: ("NOT_FOUND", "Resource not found."),
     405: ("METHOD_NOT_ALLOWED", "Method not allowed."),
+}
+
+DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
+    EmailAlreadyRegisteredError: (
+        409,
+        "EMAIL_ALREADY_REGISTERED",
+        "An account with this email already exists.",
+    ),
 }
 
 
@@ -60,7 +70,14 @@ async def handle_validation_error(
     )
 
 
+async def handle_domain_error(request: Request, exc: DomainError) -> JSONResponse:
+    """Map a business-rule failure from the services to its HTTP error."""
+    status_code, code, message = DOMAIN_ERRORS[type(exc)]
+    return error_response(status_code, code, message)
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Make every error the app returns use the SRS §4.2 envelope."""
     app.add_exception_handler(StarletteHTTPException, handle_http_exception)
     app.add_exception_handler(RequestValidationError, handle_validation_error)
+    app.add_exception_handler(DomainError, handle_domain_error)
