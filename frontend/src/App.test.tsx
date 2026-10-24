@@ -6,8 +6,6 @@ describe('App', () => {
   it('renders the starter application heading', () => {
     render(<App />)
 
-    expect(
-      screen.getByRole('heading', { name: 'Get started' }),
-    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Get started' })).toBeTruthy()
   })
 })
