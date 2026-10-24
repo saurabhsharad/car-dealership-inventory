@@ -41,6 +41,6 @@ See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specifi
 - [ ] Integration testing
 - [ ] Final documentation and submission
 
-## AI Usage
+## My AI Usage
 
 AI assistance, prompts, and the review of AI-generated suggestions will be documented in `PROMPTS.md` according to the assessment requirements.
