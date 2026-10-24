@@ -6,7 +6,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.services.errors import DomainError, EmailAlreadyRegisteredError
+from app.services.errors import (
+    DomainError,
+    EmailAlreadyRegisteredError,
+    InvalidCredentialsError,
+)
 
 HTTP_ERRORS = {
     404: ("NOT_FOUND", "Resource not found."),
@@ -19,6 +23,11 @@ DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
         "EMAIL_ALREADY_REGISTERED",
         "An account with this email already exists.",
     ),
+    InvalidCredentialsError: (
+        401,
+        "INVALID_CREDENTIALS",
+        "Invalid email or password.",
+    ),
 }
 
 
@@ -29,7 +38,12 @@ def error_response(
     details: list[dict[str, Any]] | None = None,
     headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
-    """Build a response in the SRS §4.2 error envelope."""
+    """Build a response in the SRS §4.2 error envelope.
+
+    Every 401 carries WWW-Authenticate: Bearer (SRS §4.2).
+    """
+    if status_code == 401:
+        headers = {**(headers or {}), "WWW-Authenticate": "Bearer"}
     error: dict[str, Any] = {"code": code, "message": message}
     if details is not None:
         error["details"] = details

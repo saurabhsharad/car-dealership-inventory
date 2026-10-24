@@ -4,3 +4,7 @@ class DomainError(Exception):
 
 class EmailAlreadyRegisteredError(DomainError):
     """The email already belongs to an account (FR-AUTH-002)."""
+
+
+class InvalidCredentialsError(DomainError):
+    """The email and password do not match an account (FR-AUTH-005)."""
