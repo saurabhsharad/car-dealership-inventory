@@ -1,16 +1,18 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
 NormalizedEmail = Annotated[EmailStr, AfterValidator(str.lower)]
 
 
 class RegisterRequest(BaseModel):
-    """Body of POST /api/auth/register."""
+    """Body of POST /api/auth/register; any other field is rejected (A-03)."""
+
+    model_config = ConfigDict(extra="forbid")
 
     email: NormalizedEmail
-    password: str
+    password: str = Field(min_length=8, max_length=128)
 
 
 class PublicUser(BaseModel):
