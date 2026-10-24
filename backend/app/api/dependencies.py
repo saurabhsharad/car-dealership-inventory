@@ -39,3 +39,11 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def require_admin(user: CurrentUser) -> User:
+    """Placeholder: lets every logged-in user through, admin or not."""
+    return user
+
+
+AdminUser = Annotated[User, Depends(require_admin)]
