@@ -33,7 +33,7 @@ See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specifi
 ## Development Status
 
 - [x] Requirements specification
-- [ ] Project scaffolding
+- [x] Project scaffolding
 - [ ] Database schema and migrations
 - [ ] Authentication and authorization
 - [ ] Vehicle and inventory APIs
