@@ -16,9 +16,15 @@ def get_engine() -> Engine:
 
 
 def get_db(engine: Annotated[Engine, Depends(get_engine)]) -> Iterator[Session]:
-    """Placeholder: a session with no transaction handling yet."""
-    with Session(engine) as session:
+    """One session and one transaction per request (SRS §5.3).
+
+    The transaction commits after the endpoint returns and rolls back if
+    anything raises, including the commit itself.
+    """
+    with Session(engine) as session, session.begin():
         yield session
 
 
-DbSession = Annotated[Session, Depends(get_db)]
+# scope="function" finishes the commit before the response is sent, so a
+# failed commit can never be reported to the client as a success.
+DbSession = Annotated[Session, Depends(get_db, scope="function")]
