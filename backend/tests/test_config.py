@@ -57,3 +57,15 @@ def test_get_settings_returns_one_cached_instance():
     second = get_settings()
 
     assert first is second
+
+@pytest.mark.usefixtures("required_env")
+def test_jwt_secret_key_is_hidden_when_settings_are_printed(monkeypatch):
+    """NFR-SEC-008: the JWT secret never appears when settings are printed or logged."""
+    secret = "unit-test-secret-" + "z" * 16
+    monkeypatch.setenv("JWT_SECRET_KEY", secret)
+
+    settings = Settings(_env_file=None)
+
+    assert secret not in repr(settings)
+    assert secret not in str(settings)
+    assert settings.jwt_secret_key.get_secret_value() == secret    
