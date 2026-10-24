@@ -10,6 +10,8 @@ from app.services.errors import (
     DomainError,
     EmailAlreadyRegisteredError,
     InvalidCredentialsError,
+    NotAuthenticatedError,
+    SessionExpiredError,
 )
 
 HTTP_ERRORS = {
@@ -27,6 +29,12 @@ DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
         401,
         "INVALID_CREDENTIALS",
         "Invalid email or password.",
+    ),
+    NotAuthenticatedError: (401, "NOT_AUTHENTICATED", "Authentication required."),
+    SessionExpiredError: (
+        401,
+        "TOKEN_EXPIRED",
+        "Your session has expired. Please log in again.",
     ),
 }
 

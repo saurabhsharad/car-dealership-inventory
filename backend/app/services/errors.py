@@ -8,3 +8,11 @@ class EmailAlreadyRegisteredError(DomainError):
 
 class InvalidCredentialsError(DomainError):
     """The email and password do not match an account (FR-AUTH-005)."""
+
+
+class NotAuthenticatedError(DomainError):
+    """No usable bearer token, or its user no longer exists (FR-AUTH-006)."""
+
+
+class SessionExpiredError(DomainError):
+    """The bearer token was genuine but has expired (FR-AUTH-006)."""
