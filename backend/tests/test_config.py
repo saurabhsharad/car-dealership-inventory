@@ -9,11 +9,17 @@ VALID_ENV = {
 }
 
 
+@pytest.fixture
+def required_env(monkeypatch):
+    """Set every required variable to a valid value for the duration of one test."""
+    for name, value in VALID_ENV.items():
+        monkeypatch.setenv(name, value)
+
+
+@pytest.mark.usefixtures("required_env")
 @pytest.mark.parametrize("missing_var", ["DATABASE_URL", "JWT_SECRET_KEY"])
 def test_settings_fail_fast_when_required_variable_missing(monkeypatch, missing_var):
     """T-CFG-01 / NFR-REL-002: settings refuse to load without a required variable."""
-    for name, value in VALID_ENV.items():
-        monkeypatch.setenv(name, value)
     monkeypatch.delenv(missing_var)
 
     with pytest.raises(ValidationError) as exc_info:
@@ -22,10 +28,10 @@ def test_settings_fail_fast_when_required_variable_missing(monkeypatch, missing_
     error_fields = {error["loc"][0] for error in exc_info.value.errors()}
     assert missing_var.lower() in error_fields
 
+
+@pytest.mark.usefixtures("required_env")
 def test_optional_settings_use_srs_defaults(monkeypatch):
     """NFR-CFG-001: optional settings fall back to their documented defaults."""
-    for name, value in VALID_ENV.items():
-        monkeypatch.setenv(name, value)
     for name in ("JWT_EXPIRES_MINUTES", "CORS_ORIGINS", "TEST_DATABASE_URL"):
         monkeypatch.delenv(name, raising=False)
 
