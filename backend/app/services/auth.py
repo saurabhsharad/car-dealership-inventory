@@ -41,3 +41,8 @@ def authenticate_user(db: Session, email: str, password: str) -> User:
     if not verify_password(password, user.password_hash):
         raise InvalidCredentialsError
     return user
+
+
+def create_admin(db: Session, email: str, password: str) -> User:
+    """Placeholder: creates a customer, not an admin."""
+    return register_user(db, email, password)
