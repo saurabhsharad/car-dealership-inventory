@@ -76,3 +76,25 @@ def test_settings_read_dotenv_from_backend_directory():
     expected = Path(__file__).resolve().parents[1] / ".env"
 
     assert Settings.model_config.get("env_file") == expected
+@pytest.mark.usefixtures("required_env")
+def test_jwt_secret_key_shorter_than_32_characters_is_rejected(monkeypatch):
+    """NFR-SEC-002 / NFR-SEC-008: a short JWT secret is rejected without being echoed."""
+    short_secret = "short-secret-" + "s" * 18  # 31 characters
+    monkeypatch.setenv("JWT_SECRET_KEY", short_secret)
+
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(_env_file=None)
+
+    error_fields = {error["loc"][0] for error in exc_info.value.errors()}
+    assert "jwt_secret_key" in error_fields
+    assert short_secret not in str(exc_info.value)
+
+
+@pytest.mark.usefixtures("required_env")
+def test_jwt_secret_key_of_exactly_32_characters_is_accepted(monkeypatch):
+    """NFR-SEC-002: 32 characters is the smallest accepted secret."""
+    monkeypatch.setenv("JWT_SECRET_KEY", "s" * 32)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.jwt_secret_key.get_secret_value() == "s" * 32
