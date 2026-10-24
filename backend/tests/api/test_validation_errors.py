@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
@@ -57,3 +58,22 @@ def test_validation_error_never_echoes_submitted_values():
 
     assert response.status_code == 422
     assert "hunter2" not in response.text
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        ("{not valid json", "JSON decode error"),
+        ("", "Field required"),
+    ],
+)
+def test_unusable_body_is_reported_without_a_field(body, message):
+    """T-ERR-01: malformed or missing JSON is a 422 about the body as a whole."""
+    response = make_client().post(
+        "/items", content=body, headers={"Content-Type": "application/json"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["details"] == [
+        {"location": "body", "field": None, "message": message}
+    ]
