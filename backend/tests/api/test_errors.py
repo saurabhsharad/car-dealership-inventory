@@ -25,7 +25,7 @@ def test_wrong_method_returns_method_not_allowed_envelope():
     assert response.json() == {
         "error": {"code": "METHOD_NOT_ALLOWED", "message": "Method not allowed."}
     }
-    assert response.headers["Allow"] == "GET, HEAD"
+    assert set(response.headers["Allow"].split(", ")) == {"GET", "HEAD"}
 
 
 def test_unmapped_http_error_keeps_its_status_in_the_envelope():
