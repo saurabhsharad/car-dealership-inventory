@@ -26,6 +26,13 @@ async def handle_http_exception(
     return error_response(exc.status_code, "NOT_FOUND", "Resource not found.")
 
 
+def error_field(error: dict[str, Any]) -> str | None:
+    """Dotted path of the invalid field, or None if the whole body is unusable."""
+    if error["type"] == "json_invalid":
+        return None
+    return ".".join(str(part) for part in error["loc"][1:]) or None
+
+
 async def handle_validation_error(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
@@ -33,7 +40,7 @@ async def handle_validation_error(
     details = [
         {
             "location": str(error["loc"][0]),
-            "field": ".".join(str(part) for part in error["loc"][1:]),
+            "field": error_field(error),
             "message": error["msg"],
         }
         for error in exc.errors()
