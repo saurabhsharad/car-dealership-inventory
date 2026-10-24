@@ -12,12 +12,22 @@ DUMMY_PASSWORD_HASH = hash_password("not-a-real-password")
 
 
 def register_user(db: Session, email: str, password: str) -> User:
-    """Create a customer account with a hashed password (FR-AUTH-001).
+    """Create a customer account with a hashed password (FR-AUTH-001)."""
+    return add_user(db, email, password, role="customer")
+
+
+def create_admin(db: Session, email: str, password: str) -> User:
+    """Create an admin account; only the CLI calls this (FR-AUTH-008, A-03)."""
+    return add_user(db, email, password, role="admin")
+
+
+def add_user(db: Session, email: str, password: str, role: str) -> User:
+    """Insert a user with a hashed password and the given role.
 
     The unique constraint decides whether the email is taken, so a
     duplicate is caught atomically, even when two requests race.
     """
-    user = User(email=email, password_hash=hash_password(password))
+    user = User(email=email, password_hash=hash_password(password), role=role)
     db.add(user)
     try:
         db.flush()
@@ -41,8 +51,3 @@ def authenticate_user(db: Session, email: str, password: str) -> User:
     if not verify_password(password, user.password_hash):
         raise InvalidCredentialsError
     return user
-
-
-def create_admin(db: Session, email: str, password: str) -> User:
-    """Placeholder: creates a customer, not an admin."""
-    return register_user(db, email, password)
