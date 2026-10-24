@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
+from app.core.config import Settings, get_settings
 
-from app.core.config import Settings
 
 VALID_ENV = {
     "DATABASE_URL": "postgresql+psycopg://user:pass@localhost:5432/dealership",
@@ -40,3 +40,12 @@ def test_optional_settings_use_srs_defaults(monkeypatch):
     assert settings.jwt_expires_minutes == 30
     assert settings.cors_origins == ["http://localhost:5173"]
     assert settings.test_database_url is None
+
+@pytest.mark.usefixtures("required_env")
+def test_get_settings_returns_one_cached_instance():
+    """SRS §8.1: settings are loaded once and reused."""
+    first = get_settings()
+    second = get_settings()
+
+    assert first is second
+    get_settings.cache_clear()    
