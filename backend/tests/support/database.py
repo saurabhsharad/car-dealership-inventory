@@ -22,10 +22,16 @@ def require_test_database_url(url: str | None) -> str:
     return url
 
 
-def rebuild_schema(connection: Connection) -> None:
-    """Drop every migration on the connection's database, then reapply them all."""
+def alembic_config(connection: Connection) -> Config:
+    """Alembic config bound to an open connection, never to alembic.ini's URL."""
     config = Config()
     config.set_main_option("script_location", str(BACKEND_DIR / "migrations"))
     config.attributes["connection"] = connection
+    return config
+
+
+def rebuild_schema(connection: Connection) -> None:
+    """Drop every migration on the connection's database, then reapply them all."""
+    config = alembic_config(connection)
     command.downgrade(config, "base")
     command.upgrade(config, "head")
