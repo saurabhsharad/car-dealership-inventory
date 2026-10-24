@@ -1,9 +1,12 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.session import get_db
+from app.main import app
 from tests.support.database import rebuild_schema, require_test_database_url
 
 
@@ -47,3 +50,21 @@ def committed_db(db_engine):
     empty_all_tables()
     yield db_engine
     empty_all_tables()
+
+
+@pytest.fixture
+def client(db_session):
+    """The real app, with each request's work going through db_session."""
+
+    def get_test_db():
+        try:
+            yield db_session
+            db_session.commit()
+        except Exception:
+            db_session.rollback()
+            raise
+
+    app.dependency_overrides[get_db] = get_test_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
