@@ -16,6 +16,7 @@ from app.services.auth import authenticate_user, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.post(
     "/register", status_code=status.HTTP_201_CREATED, response_model=RegisterResponse
 )
