@@ -1,9 +1,8 @@
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 
-from app.core.config import Settings, get_settings
+from app.api.dependencies import AppSettings
 from app.core.tokens import create_access_token
 from app.db.session import DbSession
 from app.schemas.auth import (
@@ -16,9 +15,6 @@ from app.schemas.auth import (
 from app.services.auth import authenticate_user, register_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-AppSettings = Annotated[Settings, Depends(get_settings)]
-
 
 @router.post(
     "/register", status_code=status.HTTP_201_CREATED, response_model=RegisterResponse

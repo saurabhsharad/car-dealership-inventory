@@ -9,13 +9,15 @@ from app.db.session import DbSession
 from app.models import User
 from app.services.errors import NotAuthenticatedError, SessionExpiredError
 
+AppSettings = Annotated[Settings, Depends(get_settings)]
+
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
     db: DbSession,
-    settings: Annotated[Settings, Depends(get_settings)],
+    settings: AppSettings,
 ) -> User:
     """The user named by a valid bearer token, who must still exist (FR-AUTH-006)."""
     if credentials is None:
