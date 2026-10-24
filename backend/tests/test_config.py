@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+from pathlib import Path
 
 from app.core.config import Settings, get_settings
 
@@ -69,3 +70,9 @@ def test_jwt_secret_key_is_hidden_when_settings_are_printed(monkeypatch):
     assert secret not in repr(settings)
     assert secret not in str(settings)
     assert settings.jwt_secret_key.get_secret_value() == secret    
+
+def test_settings_read_dotenv_from_backend_directory():
+    """Settings read backend/.env regardless of the directory the app is started from."""
+    expected = Path(__file__).resolve().parents[1] / ".env"
+
+    assert Settings.model_config.get("env_file") == expected
