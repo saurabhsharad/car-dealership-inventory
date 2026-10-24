@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -21,3 +22,8 @@ def register_user(db: Session, email: str, password: str) -> User:
             raise EmailAlreadyRegisteredError from error
         raise
     return user
+
+
+def authenticate_user(db: Session, email: str, password: str) -> User:
+    """Return the account for these credentials (FR-AUTH-004)."""
+    return db.scalar(select(User).where(User.email == email))

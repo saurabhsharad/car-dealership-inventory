@@ -30,3 +30,21 @@ class RegisterResponse(BaseModel):
     """Body of a successful registration: the new user, and no token."""
 
     user: PublicUser
+
+
+class LoginRequest(BaseModel):
+    """Body of POST /api/auth/login (A-17: JSON, not an OAuth2 form)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    email: NormalizedEmail
+    password: str = Field(max_length=128)
+
+
+class LoginResponse(BaseModel):
+    """A bearer token, its lifetime in seconds and the logged-in user."""
+
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
+    user: PublicUser
