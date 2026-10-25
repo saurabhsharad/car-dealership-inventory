@@ -171,6 +171,6 @@ Every commit Claude helped with ends with `Co-authored-by: Claude <AI@users.nore
 
 ### Reflection
 
-[TODO: my own reflection — what AI sped up, where I had to correct or reject its suggestions, and what I learned.]
+During this project, I used AI as a development assistant to speed up implementation and improve my understanding of the technologies I was working with. It helped me write boilerplate code, set up the project structure, create tests, and explore different approaches to solving problems. Whenever there were multiple ways to implement something, AI explained the available options, their trade-offs, and the reasons for choosing one approach over another. I researched these options, made the final decisions myself, implemented the changes, and ran the tests to verify the behaviour. When a test failed, I used AI to understand why it failed, identify the underlying issue, and work towards a solution rather than simply accepting the generated code. I also asked it to explain unfamiliar technical concepts and terms that I encountered during development, which helped me learn while building the application. Overall, AI significantly accelerated my development process, reduced time spent on repetitive tasks, and helped me focus more on problem-solving, testing, design decisions, and understanding the code rather than just writing it.
 
 Raw prompts and conversation links are in [`PROMPTS.md`](PROMPTS.md).
