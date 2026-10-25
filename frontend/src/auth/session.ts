@@ -21,18 +21,61 @@ export function sessionFromLogin(
   }
 }
 
-/** Placeholder: writes without guarding against storage errors. */
+// Storage can throw (private browsing, blocked site data), so every access
+// is guarded: the app then simply behaves as if nothing were stored.
+
 export function saveSession(session: Session): void {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  } catch {
+    // The session still lives in memory for this tab.
+  }
 }
 
-/** Placeholder: trusts whatever is stored, expired or not. */
+/** The stored session, or null if absent, unreadable or expired (FR-UI-003). */
 export function loadSession(now: number = Date.now()): Session | null {
-  void now
-  const stored = localStorage.getItem(SESSION_KEY)
-  return stored === null ? null : (JSON.parse(stored) as Session)
+  let stored: string | null
+  try {
+    stored = localStorage.getItem(SESSION_KEY)
+  } catch {
+    return null
+  }
+  if (stored === null) return null
+
+  const session = parseSession(stored)
+  if (session === null || session.expiresAt <= now) {
+    clearSession()
+    return null
+  }
+  return session
 }
 
 export function clearSession(): void {
-  localStorage.removeItem(SESSION_KEY)
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    // Nothing more can be done; an unreadable session is never loaded.
+  }
+}
+
+function parseSession(stored: string): Session | null {
+  try {
+    const value: unknown = JSON.parse(stored)
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      'token' in value &&
+      typeof value.token === 'string' &&
+      'user' in value &&
+      typeof value.user === 'object' &&
+      value.user !== null &&
+      'expiresAt' in value &&
+      typeof value.expiresAt === 'number'
+    ) {
+      return value as Session
+    }
+  } catch {
+    // Not JSON.
+  }
+  return null
 }
