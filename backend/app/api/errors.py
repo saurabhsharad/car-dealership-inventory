@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -16,6 +17,8 @@ from app.services.errors import (
     SessionExpiredError,
     VehicleNotFoundError,
 )
+
+logger = logging.getLogger("app.errors")
 
 HTTP_ERRORS = {
     404: ("NOT_FOUND", "Resource not found."),
@@ -104,8 +107,21 @@ async def handle_domain_error(request: Request, exc: DomainError) -> JSONRespons
     return error_response(status_code, code, message)
 
 
+async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    """Log any unhandled error in full and answer with a generic 500.
+
+    The client never sees the exception, its message or a traceback
+    (NFR-ERR-001); they are written to the app.errors logger instead.
+    """
+    logger.error(
+        "Unhandled error on %s %s", request.method, request.url.path, exc_info=exc
+    )
+    return error_response(500, "INTERNAL_ERROR", "An unexpected error occurred.")
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Make every error the app returns use the SRS §4.2 envelope."""
     app.add_exception_handler(StarletteHTTPException, handle_http_exception)
     app.add_exception_handler(RequestValidationError, handle_validation_error)
     app.add_exception_handler(DomainError, handle_domain_error)
+    app.add_exception_handler(Exception, handle_unexpected_error)
