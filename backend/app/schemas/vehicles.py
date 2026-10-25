@@ -10,6 +10,8 @@ from pydantic import (
     PlainSerializer,
     StrictInt,
     StringConstraints,
+    ValidationInfo,
+    field_validator,
 )
 
 VehicleText = Annotated[
@@ -33,18 +35,39 @@ def blank_to_none(value: object) -> object:
     return value
 
 
-OptionalFilter = Annotated[str | None, BeforeValidator(blank_to_none)]
-OptionalPrice = Annotated[Decimal | None, BeforeValidator(blank_to_none)]
+OptionalFilter = Annotated[
+    Annotated[str, StringConstraints(max_length=50)] | None,
+    BeforeValidator(blank_to_none),
+]
+OptionalPrice = Annotated[
+    Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)] | None,
+    BeforeValidator(blank_to_none),
+]
 
 
 class VehicleSearch(BaseModel):
-    """Query parameters of GET /api/vehicles/search; all optional (FR-VEH-004)."""
+    """Query parameters of GET /api/vehicles/search; all optional (FR-VEH-004).
+
+    Prices are decimals of at least 0 with two places at most, min_price may
+    not exceed max_price, and text filters are at most 50 characters
+    (FR-VEH-005).
+    """
 
     make: OptionalFilter = None
     model: OptionalFilter = None
     category: OptionalFilter = None
     min_price: OptionalPrice = None
     max_price: OptionalPrice = None
+
+    @field_validator("max_price")
+    @classmethod
+    def not_below_min_price(
+        cls, max_price: Decimal | None, info: ValidationInfo
+    ) -> Decimal | None:
+        min_price = info.data.get("min_price")
+        if None not in (min_price, max_price) and max_price < min_price:
+            raise ValueError("max_price must not be less than min_price")
+        return max_price
 
 
 class VehicleUpdate(BaseModel):
