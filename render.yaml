@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: car-dealership-inventory-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /openapi.json
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.15
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_EXPIRES_MINUTES
+        value: 30
+      - key: CORS_ORIGINS
+        sync: false

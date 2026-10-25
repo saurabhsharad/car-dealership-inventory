@@ -119,6 +119,36 @@ Other frontend checks: `npm run lint`, `npm run format:check`, `npm run typechec
 
 The latest results are in [`docs/test-report.md`](docs/test-report.md).
 
+## Deployment
+
+The deployment setup uses three services:
+
+- **Cloudflare Pages** serves the React/Vite frontend as static files.
+- **Render** runs the FastAPI API. The repository's [`render.yaml`](render.yaml) defines the service, Python version, health check, secret settings and migration command.
+- **Neon** provides the production PostgreSQL database. Keep production data separate from the local Docker databases and the `_test` database.
+
+This combination can run within the providers' free plans for an assessment or portfolio demo, but has cold starts and usage limits. Render's free API service sleeps after 15 minutes without traffic and can take about a minute to wake. Render's free PostgreSQL expires after 30 days, so this setup uses Neon for persistent data instead. Neon free resources have monthly compute, storage and transfer quotas; check its current plan limits before deployment. Avoid adding a payment method or upgrading a plan unless you intend to incur charges.
+
+### Configure the API
+
+1. Create a PostgreSQL project on Neon and copy its pooled or direct connection URL. It must connect to the production database, never the local development or test database.
+2. In Render, create a Blueprint from this repository and select `render.yaml`. The service is configured for the `backend/` directory and Python 3.12. Render generates a 256-bit `JWT_SECRET_KEY` for the API.
+3. Set the Blueprint's `DATABASE_URL` to the Neon connection URL and `CORS_ORIGINS` to a JSON list containing the exact Cloudflare Pages origin, for example `["https://your-project.pages.dev"]`. Do not include a trailing slash or use `*`.
+4. The API start command runs `alembic upgrade head` before Uvicorn starts. Check the Render deploy logs for a successful migration and health check at `/openapi.json`.
+
+### Configure the frontend
+
+1. In Cloudflare Pages, connect this GitHub repository and set the root directory to `frontend`.
+2. Use `npm run build` as the build command and `dist` as the output directory. Set the Node.js version to 24.
+3. Set the build environment variable `VITE_API_BASE_URL` to the Render API origin (for example, `https://your-api.onrender.com`). This value is public and is compiled into the frontend; never put secrets in `VITE_*` variables.
+4. Deploy the site, then add its exact `https://…pages.dev` origin to the API's `CORS_ORIGINS` setting and redeploy the API.
+
+### Create the first admin
+
+Public registration creates customers only. Use the existing `python -m app.cli create-admin --email …` command from `backend/` after deployment, with `DATABASE_URL` set to the production Neon database. The command prompts for the password securely. Do not add admin credentials to source control, and do not use the local development database for this step.
+
+After deployment is verified, add the live frontend and API URLs here. The app's API documentation is available at `<API URL>/docs`.
+
 ## Requirements Specification
 
 See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specification.
