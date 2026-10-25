@@ -103,3 +103,23 @@ def test_jwt_secret_key_of_exactly_32_characters_is_accepted(monkeypatch):
     settings = Settings(_env_file=None)
 
     assert settings.jwt_secret_key.get_secret_value() == "s" * 32
+
+
+@pytest.mark.usefixtures("required_env")
+@pytest.mark.parametrize(
+    "given",
+    [
+        "postgres://user:pass@db.example.com:5432/dealership",
+        "postgresql://user:pass@db.example.com:5432/dealership",
+        "postgresql+psycopg://user:pass@db.example.com:5432/dealership",
+    ],
+)
+def test_database_url_uses_the_psycopg_driver(monkeypatch, given):
+    """Hosts such as Render give postgres:// URLs; the app needs psycopg 3."""
+    monkeypatch.setenv("DATABASE_URL", given)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.database_url == (
+        "postgresql+psycopg://user:pass@db.example.com:5432/dealership"
+    )
