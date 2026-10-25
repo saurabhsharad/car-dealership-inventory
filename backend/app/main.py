@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.errors import register_exception_handlers
-from app.api.routes import auth
+from app.api.routes import auth, vehicles
 
 app = FastAPI(
     title="Car Dealership Inventory API",
@@ -9,3 +9,4 @@ app = FastAPI(
 )
 register_exception_handlers(app)
 app.include_router(auth.router, prefix="/api")
+app.include_router(vehicles.router, prefix="/api")
