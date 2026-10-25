@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '../api/client'
-import { listVehicles, purchaseVehicle, searchVehicles } from '../api/vehicles'
+import {
+  createVehicle,
+  deleteVehicle,
+  listVehicles,
+  purchaseVehicle,
+  restockVehicle,
+  searchVehicles,
+  updateVehicle,
+} from '../api/vehicles'
 import { useAuth } from '../auth/useAuth'
+import { RestockControl } from '../components/RestockControl'
 import { SearchForm, type FilterErrors } from '../components/SearchForm'
 import { VehicleCard } from '../components/VehicleCard'
-import type { SearchFilters, Vehicle } from '../types'
+import { VehicleForm } from '../components/VehicleForm'
+import type { SearchFilters, Vehicle, VehicleInput } from '../types'
 
 function messageFor(error: unknown): string {
   return error instanceof ApiError
@@ -47,6 +57,8 @@ export function DashboardPage() {
   const [filterErrors, setFilterErrors] = useState<FilterErrors>({})
   const [status, setStatus] = useState('')
   const [purchasingId, setPurchasingId] = useState<number | null>(null)
+  const [editing, setEditing] = useState<Vehicle | 'new' | null>(null)
+  const isAdmin = user?.role === 'admin'
 
   const load = useCallback(async (query: SearchFilters) => {
     setLoading(true)
@@ -112,12 +124,90 @@ export function DashboardPage() {
     }
   }
 
+  /** A vehicle deleted elsewhere: say so and show the current list. */
+  function handleGone() {
+    setStatus('Vehicle no longer exists')
+    void load(applied)
+  }
+
+  async function save(input: VehicleInput) {
+    if (editing === 'new') {
+      await createVehicle(input)
+      setStatus('Vehicle added.')
+    } else if (editing) {
+      try {
+        await updateVehicle(editing.id, input)
+        setStatus('Vehicle updated.')
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 404)) throw error
+        setEditing(null)
+        handleGone()
+        return
+      }
+    }
+    setEditing(null)
+    void load(applied)
+  }
+
+  async function remove(vehicle: Vehicle) {
+    if (!window.confirm(`Delete ${vehicle.make} ${vehicle.model}?`)) return
+    setStatus('')
+    try {
+      await deleteVehicle(vehicle.id)
+      setStatus('Vehicle deleted.')
+      void load(applied)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) handleGone()
+      else setStatus(messageFor(error))
+    }
+  }
+
+  async function restock(vehicle: Vehicle, quantity: number) {
+    setStatus('')
+    try {
+      const updated = await restockVehicle(vehicle.id, quantity)
+      replace(vehicle.id, () => updated)
+      setStatus(`Restocked ${vehicle.make} ${vehicle.model}.`)
+      return true
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) handleGone()
+      else setStatus(messageFor(error))
+      return false
+    }
+  }
+
   const filtered = hasFilters(applied)
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">Inventory</h1>
-      <p className="mt-2 text-slate-600">Signed in as {user?.email}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Inventory</h1>
+          <p className="mt-2 text-slate-600">Signed in as {user?.email}</p>
+        </div>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setEditing('new')}
+            className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+          >
+            Add vehicle
+          </button>
+        )}
+      </div>
+
+      {isAdmin && editing && (
+        <div className="mt-6">
+          <VehicleForm
+            key={editing === 'new' ? 'new' : editing.id}
+            title={editing === 'new' ? 'Add vehicle' : 'Edit vehicle'}
+            initial={editing === 'new' ? undefined : editing}
+            withStock={editing === 'new'}
+            onSave={save}
+            onCancel={() => setEditing(null)}
+          />
+        </div>
+      )}
 
       <div className="mt-6">
         <SearchForm
@@ -179,6 +269,29 @@ export function DashboardPage() {
                   >
                     {pending ? 'Purchasing…' : 'Purchase'}
                   </button>
+                  {isAdmin && (
+                    <>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(vehicle)}
+                          className="flex-1 rounded-md border border-slate-300 px-3 py-2 font-medium hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void remove(vehicle)}
+                          className="flex-1 rounded-md border border-red-300 px-3 py-2 font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-600"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                      <RestockControl
+                        onRestock={(quantity) => restock(vehicle, quantity)}
+                      />
+                    </>
+                  )}
                 </VehicleCard>
               )
             })}
