@@ -24,3 +24,7 @@ class ForbiddenError(DomainError):
 
 class VehicleNotFoundError(DomainError):
     """No vehicle has the requested id (FR-VEH-008)."""
+
+
+class OutOfStockError(DomainError):
+    """The vehicle has no stock left to sell (FR-INV-002)."""

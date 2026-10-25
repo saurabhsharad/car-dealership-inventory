@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Vehicle
 from app.schemas.vehicles import VehicleCreate, VehicleSearch, VehicleUpdate
-from app.services.errors import VehicleNotFoundError
+from app.services.errors import OutOfStockError, VehicleNotFoundError
 
 NEWEST_FIRST = (Vehicle.created_at.desc(), Vehicle.id.desc())
 
@@ -66,12 +66,14 @@ def delete_vehicle(db: Session, vehicle_id: int) -> None:
 
 
 def purchase_vehicle(db: Session, vehicle_id: int) -> Vehicle:
-    """Sell one unit (FR-INV-001).
+    """Sell one unit, or raise OutOfStockError at stock 0 (FR-INV-001/002).
 
     Reads the stock and writes back one less. This read-then-write is not
     yet safe when purchases run at the same time.
     """
     vehicle = get_vehicle(db, vehicle_id)
+    if vehicle.quantity_in_stock < 1:
+        raise OutOfStockError
     vehicle.quantity_in_stock -= 1
     db.flush()
     return vehicle

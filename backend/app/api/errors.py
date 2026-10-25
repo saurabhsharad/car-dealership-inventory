@@ -12,6 +12,7 @@ from app.services.errors import (
     ForbiddenError,
     InvalidCredentialsError,
     NotAuthenticatedError,
+    OutOfStockError,
     SessionExpiredError,
     VehicleNotFoundError,
 )
@@ -40,6 +41,7 @@ DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
     ),
     ForbiddenError: (403, "FORBIDDEN", "Admin access required."),
     VehicleNotFoundError: (404, "VEHICLE_NOT_FOUND", "Vehicle not found."),
+    OutOfStockError: (409, "OUT_OF_STOCK", "This vehicle is out of stock."),
 }
 
 
