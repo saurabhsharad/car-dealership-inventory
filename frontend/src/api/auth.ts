@@ -1,19 +1,21 @@
 import type { LoginResponse, RegisterResponse } from '../types'
+import { apiRequest } from './client'
 
-export async function register(
+/** Create a customer account (FR-AUTH-001); no token is returned. */
+export function register(
   email: string,
   password: string,
 ): Promise<RegisterResponse> {
-  void email
-  void password
-  throw new Error('Placeholder: register is not implemented yet')
+  return apiRequest('/api/auth/register', {
+    method: 'POST',
+    body: { email, password },
+  })
 }
 
-export async function login(
-  email: string,
-  password: string,
-): Promise<LoginResponse> {
-  void email
-  void password
-  throw new Error('Placeholder: login is not implemented yet')
+/** Exchange credentials for a bearer token and the user (FR-AUTH-004). */
+export function login(email: string, password: string): Promise<LoginResponse> {
+  return apiRequest('/api/auth/login', {
+    method: 'POST',
+    body: { email, password },
+  })
 }
