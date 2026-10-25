@@ -26,6 +26,99 @@ A full-stack vehicle inventory management application built using test-driven de
 - Vitest
 - React Testing Library
 
+## Prerequisites
+
+- Docker (for PostgreSQL 16)
+- Python 3.12
+- Node.js 24 and npm
+
+## Setup and Running
+
+All commands run from the repository root unless a `cd` says otherwise.
+
+### 1. Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+This starts PostgreSQL 16 on `127.0.0.1:5435` and creates two databases: `dealership` for the app and `dealership_test` for the test suite.
+
+### 2. Backend
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements-dev.txt
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` and set `JWT_SECRET_KEY` to a random value:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Create the schema and start the API on port 8001:
+
+```bash
+cd backend
+alembic upgrade head
+uvicorn app.main:app --port 8001 --reload
+```
+
+Interactive API docs are at http://localhost:8001/docs.
+
+### 3. Create an admin
+
+Registration only creates customers. Admins are created from the command line (run inside `backend/` with the virtual environment active); it prompts for the password twice:
+
+```bash
+python -m app.cli create-admin --email admin@example.com
+```
+
+### 4. Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Open http://localhost:5173, register a customer or log in as the admin.
+
+### Environment variables
+
+| File | Variable | Purpose |
+|---|---|---|
+| `backend/.env` | `DATABASE_URL` | App database |
+| `backend/.env` | `TEST_DATABASE_URL` | Test database; its name must end in `_test` |
+| `backend/.env` | `JWT_SECRET_KEY` | HS256 signing key, at least 32 random bytes |
+| `backend/.env` | `JWT_EXPIRES_MINUTES` | Optional token lifetime (default 30) |
+| `backend/.env` | `CORS_ORIGINS` | Optional JSON list of allowed origins (default `["http://localhost:5173"]`) |
+| `frontend/.env.local` | `VITE_API_BASE_URL` | Backend URL (default `http://localhost:8001`) |
+
+## Running the Tests
+
+Backend (needs PostgreSQL running; uses `dealership_test`):
+
+```bash
+cd backend
+pytest --cov=app --cov-report=term-missing
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run test:coverage
+```
+
+Other frontend checks: `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run build`.
+
+The latest results are in [`docs/test-report.md`](docs/test-report.md).
+
 ## Requirements Specification
 
 See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specification.
@@ -38,7 +131,7 @@ See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specifi
 - [x] Authentication and authorization
 - [x] Vehicle and inventory APIs
 - [x] Frontend implementation
-- [ ] Integration testing
+- [x] Integration testing
 - [ ] Final documentation and submission
 
 ## Screenshots
@@ -54,4 +147,30 @@ Taken in the running app with sample data, at 1280 px and 360 px wide.
 
 ## My AI Usage
 
-AI assistance, prompts, and the review of AI-generated suggestions will be documented in `PROMPTS.md` according to the assessment requirements.
+### Tools used
+
+- **Claude (Claude Code, Anthropic):** used across the project as a pair programmer.
+- **[TODO: other tools, e.g. ChatGPT, and what each was used for]**
+
+### How I used Claude
+
+- **Planning:** turning `docs/SRS.md` into phases (scaffolding, database, auth, vehicle and inventory APIs, frontend, documentation) and comparing options at each decision point. Examples: Docker PostgreSQL on port 5435, sync SQLAlchemy, Alembic autogenerate with manual review and an `alembic check` drift guard, duplicate emails handled by insert-and-catch, `vi.mock` for API modules, and plain React state for forms. I made each choice after Claude explained the trade-offs.
+- **Test-first development:** Claude drafted the failing tests for each cycle from the SRS requirements, then the code to make them pass, and explained both. The history shows this as `test: … (red)` commits followed by `feat:` commits.
+- **Running checks:** Claude ran pytest, Vitest, ESLint, Prettier, the type checker and the build, and reported the real output.
+- **Debugging:** for example, a flaky `Allow` header assertion (fixed by comparing as a set), test factories whose setup was rolled back by a failed request (fixed by committing), and a concurrency test that only passed because of timing (fixed by connecting the threads before the barrier).
+- **Live check and documentation:** Claude exercised the running app in a browser, took the README screenshots, and drafted this README, `docs/test-report.md` and the outline of `PROMPTS.md`.
+
+### How the work was split
+
+- **Phases 1–3 (scaffolding, database, auth):** I ran every command myself, following Claude's step-by-step instructions.
+- **Phases 4 to 6.4:** Claude wrote the files, ran the checks and committed locally. I reviewed each cycle and pushed.
+- **Cycles 6.5–6.9:** I applied the changes, committed and pushed myself.
+- **Final frontend cycles and documentation:** Claude wrote, checked and committed locally. I reviewed and pushed.
+
+Every commit Claude helped with ends with `Co-authored-by: Claude <AI@users.noreply.github.com>` and has a short note on what the AI did. The first two commits (repository setup and scaffolding) have no trailer.
+
+### Reflection
+
+[TODO: my own reflection — what AI sped up, where I had to correct or reject its suggestions, and what I learned.]
+
+Raw prompts and conversation links are in [`PROMPTS.md`](PROMPTS.md).
