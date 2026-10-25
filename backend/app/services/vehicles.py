@@ -83,3 +83,20 @@ def purchase_vehicle(db: Session, vehicle_id: int) -> Vehicle:
         get_vehicle(db, vehicle_id)
         raise OutOfStockError
     return vehicle
+
+
+def restock_vehicle(db: Session, vehicle_id: int, quantity: int) -> Vehicle:
+    """Add quantity units with one atomic UPDATE (FR-INV-004).
+
+    The stock is increased in SQL rather than read and written back, so a
+    restock cannot lose a purchase that happens at the same moment.
+    """
+    vehicle = db.scalar(
+        update(Vehicle)
+        .where(Vehicle.id == vehicle_id)
+        .values(quantity_in_stock=Vehicle.quantity_in_stock + quantity)
+        .returning(Vehicle)
+    )
+    if vehicle is None:
+        raise VehicleNotFoundError
+    return vehicle

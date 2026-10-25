@@ -5,6 +5,7 @@ from fastapi import APIRouter, Path, Query, status
 from app.api.dependencies import AdminUser, CurrentUser
 from app.db.session import DbSession
 from app.schemas.vehicles import (
+    RestockRequest,
     VehicleCreate,
     VehicleOut,
     VehicleSearch,
@@ -15,6 +16,7 @@ from app.services.vehicles import (
     delete_vehicle,
     list_vehicles,
     purchase_vehicle,
+    restock_vehicle,
     search_vehicles,
     update_vehicle,
 )
@@ -63,3 +65,11 @@ def delete(vehicle_id: VehicleId, db: DbSession, admin: AdminUser) -> None:
 def purchase(vehicle_id: VehicleId, db: DbSession, user: CurrentUser) -> VehicleOut:
     """Buy one unit of a vehicle (FR-INV-001, any logged-in user)."""
     return VehicleOut.model_validate(purchase_vehicle(db, vehicle_id))
+
+
+@router.post("/{vehicle_id}/restock", response_model=VehicleOut)
+def restock(
+    vehicle_id: VehicleId, body: RestockRequest, db: DbSession, admin: AdminUser
+) -> VehicleOut:
+    """Add units to a vehicle's stock (FR-INV-004, admin only)."""
+    return VehicleOut.model_validate(restock_vehicle(db, vehicle_id, body.quantity))

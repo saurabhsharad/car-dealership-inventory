@@ -100,3 +100,14 @@ class VehicleOut(BaseModel):
     quantity_in_stock: int
     created_at: datetime
     updated_at: datetime
+
+
+class RestockRequest(BaseModel):
+    """Body of POST /api/vehicles/{id}/restock (FR-INV-005).
+
+    The 10,000 limit applies to one request; total stock may grow beyond it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    quantity: StrictInt = Field(ge=1, le=10_000)
