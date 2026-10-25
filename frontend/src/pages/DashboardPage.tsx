@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError } from '../api/client'
-import { listVehicles } from '../api/vehicles'
+import { listVehicles, purchaseVehicle, searchVehicles } from '../api/vehicles'
 import { useAuth } from '../auth/useAuth'
+import { SearchForm, type FilterErrors } from '../components/SearchForm'
 import { VehicleCard } from '../components/VehicleCard'
-import type { Vehicle } from '../types'
+import type { SearchFilters, Vehicle } from '../types'
 
 function messageFor(error: unknown): string {
   return error instanceof ApiError
@@ -11,19 +12,56 @@ function messageFor(error: unknown): string {
     : 'Something went wrong. Please try again.'
 }
 
+function hasFilters(filters: SearchFilters): boolean {
+  return Object.values(filters).some((value) => value?.trim())
+}
+
+/** Checks the browser can make before searching (A-16). */
+function checkFilters(filters: SearchFilters): FilterErrors {
+  const min = filters.min_price?.trim()
+  const max = filters.max_price?.trim()
+  if (min && max && Number(min) > Number(max)) {
+    return { max_price: 'Max price must be at least the min price.' }
+  }
+  return {}
+}
+
+/** Field errors from a 422, keyed by the query parameter they name. */
+function fieldErrorsFrom(error: ApiError): FilterErrors {
+  const errors: FilterErrors = {}
+  for (const detail of error.details ?? []) {
+    if (detail.field) {
+      errors[detail.field as keyof SearchFilters] = detail.message
+    }
+  }
+  return errors
+}
+
 export function DashboardPage() {
   const { user } = useAuth()
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<SearchFilters>({})
+  const [applied, setApplied] = useState<SearchFilters>({})
+  const [filterErrors, setFilterErrors] = useState<FilterErrors>({})
+  const [status, setStatus] = useState('')
+  const [purchasingId, setPurchasingId] = useState<number | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (query: SearchFilters) => {
     setLoading(true)
     setLoadError(null)
     try {
-      setVehicles(await listVehicles())
+      setVehicles(
+        hasFilters(query) ? await searchVehicles(query) : await listVehicles(),
+      )
+      setApplied(query)
     } catch (error) {
-      setLoadError(messageFor(error))
+      if (error instanceof ApiError && error.status === 422) {
+        setFilterErrors(fieldErrorsFrom(error))
+      } else {
+        setLoadError(messageFor(error))
+      }
     } finally {
       setLoading(false)
     }
@@ -31,15 +69,71 @@ export function DashboardPage() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loading data on mount
-    void load()
+    void load({})
   }, [load])
+
+  function search() {
+    const errors = checkFilters(filters)
+    setFilterErrors(errors)
+    if (Object.keys(errors).length === 0) void load(filters)
+  }
+
+  function clear() {
+    setFilters({})
+    setFilterErrors({})
+    void load({})
+  }
+
+  function replace(id: number, change: (vehicle: Vehicle) => Vehicle) {
+    setVehicles((current) =>
+      current.map((vehicle) => (vehicle.id === id ? change(vehicle) : vehicle)),
+    )
+  }
+
+  async function purchase(vehicle: Vehicle) {
+    setPurchasingId(vehicle.id)
+    setStatus('')
+    try {
+      const updated = await purchaseVehicle(vehicle.id)
+      replace(vehicle.id, () => updated)
+      setStatus(`Purchased ${vehicle.make} ${vehicle.model}.`)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        replace(vehicle.id, (current) => ({ ...current, quantity_in_stock: 0 }))
+        setStatus('This vehicle just sold out.')
+      } else if (error instanceof ApiError && error.status === 404) {
+        setStatus('This vehicle is no longer available')
+        void load(applied)
+      } else {
+        setStatus(messageFor(error))
+      }
+    } finally {
+      setPurchasingId(null)
+    }
+  }
+
+  const filtered = hasFilters(applied)
 
   return (
     <>
       <h1 className="text-2xl font-semibold">Inventory</h1>
       <p className="mt-2 text-slate-600">Signed in as {user?.email}</p>
 
-      <section aria-label="Vehicles" aria-busy={loading} className="mt-6">
+      <div className="mt-6">
+        <SearchForm
+          values={filters}
+          errors={filterErrors}
+          onChange={setFilters}
+          onSearch={search}
+          onClear={clear}
+        />
+      </div>
+
+      <p role="status" aria-live="polite" className="mt-4 min-h-6 text-sm">
+        {status}
+      </p>
+
+      <section aria-label="Vehicles" aria-busy={loading} className="mt-2">
         {loading && <p className="text-slate-600">Loading vehicles…</p>}
         {!loading && loadError && (
           <div
@@ -49,21 +143,45 @@ export function DashboardPage() {
             <span>{loadError}</span>
             <button
               type="button"
-              onClick={() => void load()}
+              onClick={() => void load(applied)}
               className="rounded-md border border-red-300 px-3 py-1 text-sm font-medium hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-600"
             >
               Retry
             </button>
           </div>
         )}
-        {!loading && !loadError && vehicles.length === 0 && (
+        {!loading && !loadError && vehicles.length === 0 && !filtered && (
           <p className="text-slate-600">No vehicles in inventory yet</p>
+        )}
+        {!loading && !loadError && vehicles.length === 0 && filtered && (
+          <div className="flex items-center gap-3 text-slate-600">
+            <span>No vehicles match your filters</span>
+            <button
+              type="button"
+              onClick={clear}
+              className="rounded-md border border-slate-300 px-3 py-1 text-sm font-medium hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            >
+              Clear
+            </button>
+          </div>
         )}
         {!loading && vehicles.length > 0 && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {vehicles.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
-            ))}
+            {vehicles.map((vehicle) => {
+              const pending = purchasingId === vehicle.id
+              return (
+                <VehicleCard key={vehicle.id} vehicle={vehicle}>
+                  <button
+                    type="button"
+                    disabled={vehicle.quantity_in_stock === 0 || pending}
+                    onClick={() => void purchase(vehicle)}
+                    className="mt-auto rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                  >
+                    {pending ? 'Purchasing…' : 'Purchase'}
+                  </button>
+                </VehicleCard>
+              )
+            })}
           </div>
         )}
       </section>
