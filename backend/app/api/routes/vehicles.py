@@ -14,6 +14,7 @@ from app.services.vehicles import (
     create_vehicle,
     delete_vehicle,
     list_vehicles,
+    purchase_vehicle,
     search_vehicles,
     update_vehicle,
 )
@@ -56,3 +57,9 @@ def update(
 def delete(vehicle_id: VehicleId, db: DbSession, admin: AdminUser) -> None:
     """Remove a vehicle permanently (FR-VEH-007, admin only)."""
     delete_vehicle(db, vehicle_id)
+
+
+@router.post("/{vehicle_id}/purchase", response_model=VehicleOut)
+def purchase(vehicle_id: VehicleId, db: DbSession, user: CurrentUser) -> VehicleOut:
+    """Buy one unit of a vehicle (FR-INV-001, any logged-in user)."""
+    return VehicleOut.model_validate(purchase_vehicle(db, vehicle_id))

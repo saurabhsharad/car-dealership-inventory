@@ -63,3 +63,15 @@ def delete_vehicle(db: Session, vehicle_id: int) -> None:
     """Remove a vehicle permanently (FR-VEH-007, A-11)."""
     db.delete(get_vehicle(db, vehicle_id))
     db.flush()
+
+
+def purchase_vehicle(db: Session, vehicle_id: int) -> Vehicle:
+    """Sell one unit (FR-INV-001).
+
+    Reads the stock and writes back one less. This read-then-write is not
+    yet safe when purchases run at the same time.
+    """
+    vehicle = get_vehicle(db, vehicle_id)
+    vehicle.quantity_in_stock -= 1
+    db.flush()
+    return vehicle
