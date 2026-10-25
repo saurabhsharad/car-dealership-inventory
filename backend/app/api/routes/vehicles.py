@@ -1,9 +1,11 @@
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, Query, status
 
 from app.api.dependencies import AdminUser, CurrentUser
 from app.db.session import DbSession
-from app.schemas.vehicles import VehicleCreate, VehicleOut
-from app.services.vehicles import create_vehicle, list_vehicles
+from app.schemas.vehicles import VehicleCreate, VehicleOut, VehicleSearch
+from app.services.vehicles import create_vehicle, list_vehicles, search_vehicles
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 
@@ -18,3 +20,12 @@ def create(body: VehicleCreate, db: DbSession, admin: AdminUser) -> VehicleOut:
 def list_all(db: DbSession, user: CurrentUser) -> list[VehicleOut]:
     """Every vehicle, newest first (FR-VEH-003)."""
     return [VehicleOut.model_validate(vehicle) for vehicle in list_vehicles(db)]
+
+
+# Registered before any /{id} route so "search" is never read as an id (§4.4).
+@router.get("/search", response_model=list[VehicleOut])
+def search(
+    filters: Annotated[VehicleSearch, Query()], db: DbSession, user: CurrentUser
+) -> list[VehicleOut]:
+    """Vehicles matching every given filter, newest first (FR-VEH-004)."""
+    return [VehicleOut.model_validate(v) for v in search_vehicles(db, filters)]

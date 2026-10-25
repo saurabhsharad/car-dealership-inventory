@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Vehicle
-from app.schemas.vehicles import VehicleCreate
+from app.schemas.vehicles import VehicleCreate, VehicleSearch
 
 NEWEST_FIRST = (Vehicle.created_at.desc(), Vehicle.id.desc())
 
@@ -18,3 +18,24 @@ def create_vehicle(db: Session, data: VehicleCreate) -> Vehicle:
 def list_vehicles(db: Session) -> list[Vehicle]:
     """Every vehicle, zero stock included, newest first (FR-VEH-003)."""
     return list(db.scalars(select(Vehicle).order_by(*NEWEST_FIRST)))
+
+
+def search_vehicles(db: Session, filters: VehicleSearch) -> list[Vehicle]:
+    """Vehicles matching every given filter, newest first (FR-VEH-004).
+
+    Text filters are case-insensitive substrings with %, _ and the escape
+    character matched literally; price bounds are inclusive.
+    """
+    query = select(Vehicle).order_by(*NEWEST_FIRST)
+    for column, text in [
+        (Vehicle.make, filters.make),
+        (Vehicle.model, filters.model),
+        (Vehicle.category, filters.category),
+    ]:
+        if text is not None:
+            query = query.where(column.icontains(text, autoescape=True))
+    if filters.min_price is not None:
+        query = query.where(Vehicle.price >= filters.min_price)
+    if filters.max_price is not None:
+        query = query.where(Vehicle.price <= filters.max_price)
+    return list(db.scalars(query))

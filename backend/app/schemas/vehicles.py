@@ -4,6 +4,7 @@ from typing import Annotated
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     PlainSerializer,
@@ -23,6 +24,27 @@ Price = Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
 PriceText = Annotated[
     Decimal, PlainSerializer(lambda price: f"{price:.2f}", return_type=str)
 ]
+
+
+def blank_to_none(value: object) -> object:
+    """Treat an empty or whitespace-only query parameter as not given."""
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
+
+
+OptionalFilter = Annotated[str | None, BeforeValidator(blank_to_none)]
+OptionalPrice = Annotated[Decimal | None, BeforeValidator(blank_to_none)]
+
+
+class VehicleSearch(BaseModel):
+    """Query parameters of GET /api/vehicles/search; all optional (FR-VEH-004)."""
+
+    make: OptionalFilter = None
+    model: OptionalFilter = None
+    category: OptionalFilter = None
+    min_price: OptionalPrice = None
+    max_price: OptionalPrice = None
 
 
 class VehicleUpdate(BaseModel):
