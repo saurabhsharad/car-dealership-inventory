@@ -20,3 +20,7 @@ class SessionExpiredError(DomainError):
 
 class ForbiddenError(DomainError):
     """The user is authenticated but not allowed to do this (FR-AUTH-007)."""
+
+
+class VehicleNotFoundError(DomainError):
+    """No vehicle has the requested id (FR-VEH-008)."""

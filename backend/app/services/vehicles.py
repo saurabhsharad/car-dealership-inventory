@@ -2,7 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Vehicle
-from app.schemas.vehicles import VehicleCreate, VehicleSearch
+from app.schemas.vehicles import VehicleCreate, VehicleSearch, VehicleUpdate
+from app.services.errors import VehicleNotFoundError
 
 NEWEST_FIRST = (Vehicle.created_at.desc(), Vehicle.id.desc())
 
@@ -39,3 +40,14 @@ def search_vehicles(db: Session, filters: VehicleSearch) -> list[Vehicle]:
     if filters.max_price is not None:
         query = query.where(Vehicle.price <= filters.max_price)
     return list(db.scalars(query))
+
+
+def update_vehicle(db: Session, vehicle_id: int, data: VehicleUpdate) -> Vehicle:
+    """Replace make, model, category and price; stock is untouched (FR-VEH-006)."""
+    vehicle = db.get(Vehicle, vehicle_id)
+    if vehicle is None:
+        raise VehicleNotFoundError
+    for field, value in data.model_dump().items():
+        setattr(vehicle, field, value)
+    db.flush()
+    return vehicle

@@ -37,6 +37,10 @@ class Vehicle(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    # Every UPDATE SQLAlchemy issues, ORM or Core, sets updated_at. It uses
+    # statement_timestamp() because now() is fixed for the whole transaction.
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.statement_timestamp(),
     )

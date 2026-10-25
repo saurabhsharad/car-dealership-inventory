@@ -13,6 +13,7 @@ from app.services.errors import (
     InvalidCredentialsError,
     NotAuthenticatedError,
     SessionExpiredError,
+    VehicleNotFoundError,
 )
 
 HTTP_ERRORS = {
@@ -38,6 +39,7 @@ DOMAIN_ERRORS: dict[type[DomainError], tuple[int, str, str]] = {
         "Your session has expired. Please log in again.",
     ),
     ForbiddenError: (403, "FORBIDDEN", "Admin access required."),
+    VehicleNotFoundError: (404, "VEHICLE_NOT_FOUND", "Vehicle not found."),
 }
 
 

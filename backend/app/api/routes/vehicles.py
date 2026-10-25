@@ -1,13 +1,25 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Path, Query, status
 
 from app.api.dependencies import AdminUser, CurrentUser
 from app.db.session import DbSession
-from app.schemas.vehicles import VehicleCreate, VehicleOut, VehicleSearch
-from app.services.vehicles import create_vehicle, list_vehicles, search_vehicles
+from app.schemas.vehicles import (
+    VehicleCreate,
+    VehicleOut,
+    VehicleSearch,
+    VehicleUpdate,
+)
+from app.services.vehicles import (
+    create_vehicle,
+    list_vehicles,
+    search_vehicles,
+    update_vehicle,
+)
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
+
+VehicleId = Annotated[int, Path(gt=0)]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=VehicleOut)
@@ -29,3 +41,11 @@ def search(
 ) -> list[VehicleOut]:
     """Vehicles matching every given filter, newest first (FR-VEH-004)."""
     return [VehicleOut.model_validate(v) for v in search_vehicles(db, filters)]
+
+
+@router.put("/{vehicle_id}", response_model=VehicleOut)
+def update(
+    vehicle_id: VehicleId, body: VehicleUpdate, db: DbSession, admin: AdminUser
+) -> VehicleOut:
+    """Replace a vehicle's details; stock is unchanged (FR-VEH-006, admin only)."""
+    return VehicleOut.model_validate(update_vehicle(db, vehicle_id, body))
