@@ -12,6 +12,7 @@ from app.schemas.vehicles import (
 )
 from app.services.vehicles import (
     create_vehicle,
+    delete_vehicle,
     list_vehicles,
     search_vehicles,
     update_vehicle,
@@ -49,3 +50,9 @@ def update(
 ) -> VehicleOut:
     """Replace a vehicle's details; stock is unchanged (FR-VEH-006, admin only)."""
     return VehicleOut.model_validate(update_vehicle(db, vehicle_id, body))
+
+
+@router.delete("/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete(vehicle_id: VehicleId, db: DbSession, admin: AdminUser) -> None:
+    """Remove a vehicle permanently (FR-VEH-007, admin only)."""
+    delete_vehicle(db, vehicle_id)

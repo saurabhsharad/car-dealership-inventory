@@ -51,3 +51,12 @@ def update_vehicle(db: Session, vehicle_id: int, data: VehicleUpdate) -> Vehicle
         setattr(vehicle, field, value)
     db.flush()
     return vehicle
+
+
+def delete_vehicle(db: Session, vehicle_id: int) -> None:
+    """Remove a vehicle permanently (FR-VEH-007, A-11)."""
+    vehicle = db.get(Vehicle, vehicle_id)
+    if vehicle is None:
+        raise VehicleNotFoundError
+    db.delete(vehicle)
+    db.flush()
