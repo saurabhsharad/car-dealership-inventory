@@ -129,6 +129,14 @@ The deployment setup uses three services:
 
 This combination can run within the providers' free plans for an assessment or portfolio demo, but has cold starts and usage limits. Render's free API service sleeps after 15 minutes without traffic and can take about a minute to wake. Render's free PostgreSQL expires after 30 days, so this setup uses Neon for persistent data instead. Neon free resources have monthly compute, storage and transfer quotas; check its current plan limits before deployment. Avoid adding a payment method or upgrading a plan unless you intend to incur charges.
 
+### Live deployment
+
+- **Application:** https://car-dealership-inventory.pages.dev
+- **API documentation:** https://car-dealership-inventory-api-35sf.onrender.com/docs
+- **API health check:** https://car-dealership-inventory-api-35sf.onrender.com/openapi.json
+
+The production database is newly provisioned and currently has no vehicles. Public registration creates customer accounts; an admin account must be created separately before inventory can be added or restocked. The API may take about a minute to respond after a period without traffic because it runs on Render's free plan.
+
 ### Configure the API
 
 1. Create a PostgreSQL project on Neon and copy its pooled or direct connection URL. It must connect to the production database, never the local development or test database.
@@ -147,7 +155,7 @@ This combination can run within the providers' free plans for an assessment or p
 
 Public registration creates customers only. Use the existing `python -m app.cli create-admin --email …` command from `backend/` after deployment, with `DATABASE_URL` set to the production Neon database. The command prompts for the password securely. Do not add admin credentials to source control, and do not use the local development database for this step.
 
-After deployment is verified, add the live frontend and API URLs here. The app's API documentation is available at `<API URL>/docs`.
+The deployment URLs above are the live portfolio instance. The app's API documentation is available at `<API URL>/docs`.
 
 ## Requirements Specification
 
