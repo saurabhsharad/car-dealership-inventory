@@ -86,6 +86,28 @@ def test_search_is_a_route_not_a_vehicle_id(client, customer_headers):
     assert response.json() == []
 
 
+@pytest.mark.parametrize(
+    ("params", "field"),
+    [
+        ({"min_price": "500", "max_price": "100"}, "max_price"),
+        ({"min_price": "-1"}, "min_price"),
+        ({"max_price": "abc"}, "max_price"),
+        ({"min_price": "10.999"}, "min_price"),
+        ({"make": "x" * 51}, "make"),
+    ],
+)
+def test_invalid_search_parameters_are_a_422(
+    client, customer_headers, showroom, params, field
+):
+    """T-VEH-16 / FR-VEH-005: bad prices, min > max or long text give 422."""
+    response = client.get(SEARCH_URL, params=params, headers=customer_headers)
+
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "VALIDATION_ERROR"
+    assert {(d["location"], d["field"]) for d in error["details"]} == {("query", field)}
+
+
 def test_searching_requires_a_token(client):
     """FR-AUTH-006: no token gives 401."""
     response = client.get(SEARCH_URL, params={"make": "toy"})
