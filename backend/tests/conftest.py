@@ -8,6 +8,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models import User
+from tests.support.auth import bearer_headers
 from tests.support.database import rebuild_schema, require_test_database_url
 
 
@@ -84,3 +85,15 @@ def user_factory(db_session):
         return user
 
     return create
+
+
+@pytest.fixture
+def admin_headers(user_factory):
+    """Authorization header for a freshly created admin."""
+    return bearer_headers(user_factory("admin").id)
+
+
+@pytest.fixture
+def customer_headers(user_factory):
+    """Authorization header for a freshly created customer."""
+    return bearer_headers(user_factory("customer").id)
