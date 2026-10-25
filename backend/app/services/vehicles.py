@@ -42,11 +42,17 @@ def search_vehicles(db: Session, filters: VehicleSearch) -> list[Vehicle]:
     return list(db.scalars(query))
 
 
-def update_vehicle(db: Session, vehicle_id: int, data: VehicleUpdate) -> Vehicle:
-    """Replace make, model, category and price; stock is untouched (FR-VEH-006)."""
+def get_vehicle(db: Session, vehicle_id: int) -> Vehicle:
+    """The vehicle with this id, or VehicleNotFoundError (FR-VEH-008)."""
     vehicle = db.get(Vehicle, vehicle_id)
     if vehicle is None:
         raise VehicleNotFoundError
+    return vehicle
+
+
+def update_vehicle(db: Session, vehicle_id: int, data: VehicleUpdate) -> Vehicle:
+    """Replace make, model, category and price; stock is untouched (FR-VEH-006)."""
+    vehicle = get_vehicle(db, vehicle_id)
     for field, value in data.model_dump().items():
         setattr(vehicle, field, value)
     db.flush()
@@ -55,8 +61,5 @@ def update_vehicle(db: Session, vehicle_id: int, data: VehicleUpdate) -> Vehicle
 
 def delete_vehicle(db: Session, vehicle_id: int) -> None:
     """Remove a vehicle permanently (FR-VEH-007, A-11)."""
-    vehicle = db.get(Vehicle, vehicle_id)
-    if vehicle is None:
-        raise VehicleNotFoundError
-    db.delete(vehicle)
+    db.delete(get_vehicle(db, vehicle_id))
     db.flush()
