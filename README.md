@@ -37,9 +37,20 @@ See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specifi
 - [x] Database schema and migrations
 - [x] Authentication and authorization
 - [x] Vehicle and inventory APIs
-- [ ] Frontend implementation
+- [x] Frontend implementation
 - [ ] Integration testing
 - [ ] Final documentation and submission
+
+## Screenshots
+
+Taken in the running app with sample data, at 1280 px and 360 px wide.
+
+| | Desktop (1280 px) | Mobile (360 px) |
+|---|---|---|
+| Customer | ![Customer dashboard at 1280 px](docs/screenshots/customer-dashboard-1280.jpg) | ![Customer dashboard at 360 px](docs/screenshots/customer-dashboard-360.jpg) |
+| Admin | ![Admin dashboard at 1280 px](docs/screenshots/admin-dashboard-1280.jpg) | ![Admin dashboard at 360 px](docs/screenshots/admin-dashboard-360.jpg) |
+
+![Admin adding a vehicle](docs/screenshots/admin-add-vehicle-1280.jpg)
 
 ## My AI Usage
 
