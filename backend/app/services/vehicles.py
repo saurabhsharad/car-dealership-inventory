@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.models import Vehicle
@@ -66,14 +66,20 @@ def delete_vehicle(db: Session, vehicle_id: int) -> None:
 
 
 def purchase_vehicle(db: Session, vehicle_id: int) -> Vehicle:
-    """Sell one unit, or raise OutOfStockError at stock 0 (FR-INV-001/002).
+    """Sell one unit, or raise OutOfStockError at stock 0 (FR-INV-001 to 003).
 
-    Reads the stock and writes back one less. This read-then-write is not
-    yet safe when purchases run at the same time.
+    One conditional UPDATE decrements the stock only while it is at least 1
+    (SRS §5.3). Concurrent purchases queue on the row lock and each re-checks
+    the condition, so stock is never oversold and never read into Python
+    and written back.
     """
-    vehicle = get_vehicle(db, vehicle_id)
-    if vehicle.quantity_in_stock < 1:
+    vehicle = db.scalar(
+        update(Vehicle)
+        .where(Vehicle.id == vehicle_id, Vehicle.quantity_in_stock >= 1)
+        .values(quantity_in_stock=Vehicle.quantity_in_stock - 1)
+        .returning(Vehicle)
+    )
+    if vehicle is None:
+        get_vehicle(db, vehicle_id)
         raise OutOfStockError
-    vehicle.quantity_in_stock -= 1
-    db.flush()
     return vehicle
