@@ -5,7 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import { TextField } from '../components/TextField'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, notice } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -33,6 +33,14 @@ export function LoginPage() {
   return (
     <section className="mx-auto max-w-sm">
       <h1 className="text-2xl font-semibold">Log in</h1>
+      {notice && (
+        <p
+          role="status"
+          className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          {notice}
+        </p>
+      )}
       <form
         onSubmit={handleSubmit}
         noValidate
