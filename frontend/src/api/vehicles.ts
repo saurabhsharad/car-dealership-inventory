@@ -1,22 +1,42 @@
 import type { SearchFilters, Vehicle, VehicleInput } from '../types'
+import { apiRequest } from './client'
 
-const notYet = (...ignored: unknown[]): never => {
-  void ignored
-  throw new Error('Placeholder: vehicle API not implemented yet')
+export function listVehicles(): Promise<Vehicle[]> {
+  return apiRequest('/api/vehicles')
 }
 
-export const listVehicles = (): Promise<Vehicle[]> => notYet()
-export const searchVehicles = (filters: SearchFilters): Promise<Vehicle[]> =>
-  notYet(void filters)
-export const createVehicle = (input: VehicleInput): Promise<Vehicle> =>
-  notYet(void input)
-export const updateVehicle = (
+/** Search with only the filters that have a value (FR-UI-005). */
+export function searchVehicles(filters: SearchFilters): Promise<Vehicle[]> {
+  const query = new URLSearchParams()
+  for (const [name, value] of Object.entries(filters)) {
+    const trimmed = value?.trim()
+    if (trimmed) query.set(name, trimmed)
+  }
+  return apiRequest(`/api/vehicles/search?${query}`)
+}
+
+export function createVehicle(input: VehicleInput): Promise<Vehicle> {
+  return apiRequest('/api/vehicles', { method: 'POST', body: input })
+}
+
+export function updateVehicle(
   id: number,
   input: VehicleInput,
-): Promise<Vehicle> => notYet(void id, void input)
-export const deleteVehicle = (id: number): Promise<void> => notYet(void id)
-export const purchaseVehicle = (id: number): Promise<Vehicle> => notYet(void id)
-export const restockVehicle = (
-  id: number,
-  quantity: number,
-): Promise<Vehicle> => notYet(void id, void quantity)
+): Promise<Vehicle> {
+  return apiRequest(`/api/vehicles/${id}`, { method: 'PUT', body: input })
+}
+
+export function deleteVehicle(id: number): Promise<void> {
+  return apiRequest(`/api/vehicles/${id}`, { method: 'DELETE' })
+}
+
+export function purchaseVehicle(id: number): Promise<Vehicle> {
+  return apiRequest(`/api/vehicles/${id}/purchase`, { method: 'POST' })
+}
+
+export function restockVehicle(id: number, quantity: number): Promise<Vehicle> {
+  return apiRequest(`/api/vehicles/${id}/restock`, {
+    method: 'POST',
+    body: { quantity },
+  })
+}
