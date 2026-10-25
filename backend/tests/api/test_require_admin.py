@@ -1,15 +1,11 @@
-from datetime import UTC, datetime, timedelta
-
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import AdminUser
 from app.api.errors import register_exception_handlers
-from app.core.config import get_settings
-from app.core.tokens import create_access_token
 from app.db.session import get_db
-from app.models import User
+from tests.support.auth import bearer_headers
 
 FORBIDDEN = {"error": {"code": "FORBIDDEN", "message": "Admin access required."}}
 
@@ -31,39 +27,21 @@ def admin_client(db_session):
     return TestClient(test_app)
 
 
-def make_user(db_session, role: str) -> User:
-    user = User(email=f"{role}@example.com", password_hash="not-used", role=role)
-    db_session.add(user)
-    db_session.flush()
-    return user
-
-
-def auth_header(user: User) -> dict[str, str]:
-    settings = get_settings()
-    token = create_access_token(
-        user.id,
-        secret=settings.jwt_secret_key.get_secret_value(),
-        lifetime=timedelta(minutes=settings.jwt_expires_minutes),
-        now=datetime.now(UTC),
-    )
-    return {"Authorization": f"Bearer {token}"}
-
-
-def test_an_admin_is_allowed(admin_client, db_session):
+def test_an_admin_is_allowed(admin_client, user_factory):
     """FR-AUTH-007: an admin can call an admin-only route."""
-    admin = make_user(db_session, "admin")
+    admin = user_factory("admin")
 
-    response = admin_client.post("/admin-only", headers=auth_header(admin))
+    response = admin_client.post("/admin-only", headers=bearer_headers(admin.id))
 
     assert response.status_code == 200
     assert response.json() == {"role": "admin"}
 
 
-def test_a_customer_is_forbidden(admin_client, db_session):
+def test_a_customer_is_forbidden(admin_client, user_factory):
     """T-AUTH-14 / FR-AUTH-007: a customer gets 403 FORBIDDEN."""
-    customer = make_user(db_session, "customer")
+    customer = user_factory("customer")
 
-    response = admin_client.post("/admin-only", headers=auth_header(customer))
+    response = admin_client.post("/admin-only", headers=bearer_headers(customer.id))
 
     assert response.status_code == 403
     assert response.json() == FORBIDDEN
@@ -78,10 +56,12 @@ def test_a_missing_token_is_401_before_any_role_check(admin_client):
     assert response.json()["error"]["code"] == "NOT_AUTHENTICATED"
 
 
-def test_the_role_is_read_from_the_database_on_every_request(admin_client, db_session):
+def test_the_role_is_read_from_the_database_on_every_request(
+    admin_client, user_factory, db_session
+):
     """NFR-SEC-003: demoting an admin takes effect while their token is valid."""
-    admin = make_user(db_session, "admin")
-    headers = auth_header(admin)
+    admin = user_factory("admin")
+    headers = bearer_headers(admin.id)
     admin.role = "customer"
     db_session.flush()
 

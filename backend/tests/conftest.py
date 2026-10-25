@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models import User
 from tests.support.database import rebuild_schema, require_test_database_url
 
 
@@ -68,3 +69,18 @@ def client(db_session):
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def user_factory(db_session):
+    """Create users directly in db_session; their password is never checked."""
+
+    def create(role: str = "customer", email: str | None = None) -> User:
+        user = User(
+            email=email or f"{role}@example.com", password_hash="not-used", role=role
+        )
+        db_session.add(user)
+        db_session.flush()
+        return user
+
+    return create

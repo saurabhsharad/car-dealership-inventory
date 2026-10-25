@@ -7,10 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.api.dependencies import CurrentUser
 from app.api.errors import register_exception_handlers
-from app.core.config import get_settings
-from app.core.tokens import create_access_token
 from app.db.session import get_db
-from app.models import User
+from tests.support.auth import access_token_for
 
 NOT_AUTHENTICATED = {
     "error": {"code": "NOT_AUTHENTICATED", "message": "Authentication required."}
@@ -35,21 +33,8 @@ def protected_client(db_session):
 
 
 @pytest.fixture
-def user(db_session):
-    user = User(email="asha@example.com", password_hash="not-used-here")
-    db_session.add(user)
-    db_session.flush()
-    return user
-
-
-def token_for(user_id: int, issued_at: datetime | None = None) -> str:
-    settings = get_settings()
-    return create_access_token(
-        user_id,
-        secret=settings.jwt_secret_key.get_secret_value(),
-        lifetime=timedelta(minutes=settings.jwt_expires_minutes),
-        now=issued_at or datetime.now(UTC),
-    )
+def user(user_factory):
+    return user_factory(email="asha@example.com")
 
 
 def get_me(client, authorization: str | None):
@@ -59,7 +44,7 @@ def get_me(client, authorization: str | None):
 
 def test_a_valid_token_identifies_the_user(protected_client, user):
     """FR-AUTH-006: a valid bearer token resolves to its user."""
-    response = get_me(protected_client, f"Bearer {token_for(user.id)}")
+    response = get_me(protected_client, f"Bearer {access_token_for(user.id)}")
 
     assert response.status_code == 200
     assert response.json() == {"id": user.id, "email": "asha@example.com"}
@@ -98,7 +83,9 @@ def test_an_expired_token_is_reported_as_expired(protected_client, user):
     """T-AUTH-11: an expired token gives 401 TOKEN_EXPIRED."""
     long_ago = datetime.now(UTC) - timedelta(days=1)
 
-    response = get_me(protected_client, f"Bearer {token_for(user.id, long_ago)}")
+    token = access_token_for(user.id, issued_at=long_ago)
+
+    response = get_me(protected_client, f"Bearer {token}")
 
     assert response.status_code == 401
     assert response.headers["WWW-Authenticate"] == "Bearer"
@@ -114,7 +101,7 @@ def test_a_token_for_a_deleted_user_is_not_authenticated(
     protected_client, user, db_session
 ):
     """T-AUTH-13: the token's user must still exist."""
-    token = token_for(user.id)
+    token = access_token_for(user.id)
     db_session.delete(user)
     db_session.flush()
 
