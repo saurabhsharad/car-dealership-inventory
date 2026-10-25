@@ -76,14 +76,18 @@ def client(db_session):
 
 @pytest.fixture
 def user_factory(db_session):
-    """Create users directly in db_session; their password is never checked."""
+    """Create users directly in db_session; their password is never checked.
+
+    Factories commit (in db_session that only releases a savepoint), so a
+    request that fails and rolls back cannot undo the test's own setup.
+    """
 
     def create(role: str = "customer", email: str | None = None) -> User:
         user = User(
             email=email or f"{role}@example.com", password_hash="not-used", role=role
         )
         db_session.add(user)
-        db_session.flush()
+        db_session.commit()
         return user
 
     return create
@@ -104,7 +108,7 @@ def vehicle_factory(db_session):
         }
         vehicle = Vehicle(**values)
         db_session.add(vehicle)
-        db_session.flush()
+        db_session.commit()
         return vehicle
 
     return create
