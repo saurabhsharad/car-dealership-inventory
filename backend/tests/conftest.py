@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -7,7 +9,7 @@ from app.core.config import get_settings
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models import User
+from app.models import User, Vehicle
 from tests.support.auth import bearer_headers
 from tests.support.database import rebuild_schema, require_test_database_url
 
@@ -83,6 +85,27 @@ def user_factory(db_session):
         db_session.add(user)
         db_session.flush()
         return user
+
+    return create
+
+
+@pytest.fixture
+def vehicle_factory(db_session):
+    """Create vehicles directly in db_session; any field can be overridden."""
+
+    def create(**overrides) -> Vehicle:
+        values = {
+            "make": "Toyota",
+            "model": "Corolla",
+            "category": "Sedan",
+            "price": Decimal("24999.00"),
+            "quantity_in_stock": 3,
+            **overrides,
+        }
+        vehicle = Vehicle(**values)
+        db_session.add(vehicle)
+        db_session.flush()
+        return vehicle
 
     return create
 
