@@ -150,7 +150,7 @@ Taken in the running app with sample data, at 1280 px and 360 px wide.
 ### Tools used
 
 - **Claude (Claude Code, Anthropic):** used across the project as a pair programmer.
-- **[TODO: other tools, e.g. ChatGPT, and what each was used for]**
+- **ChatGPT (OpenAI):** used to write some of the prompts for creating the Software Requirements Specification (`docs/SRS.md`).
 
 ### How I used Claude
 
