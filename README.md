@@ -35,7 +35,7 @@ See [`docs/SRS.md`](docs/SRS.md) for the finalized Software Requirements Specifi
 - [x] Requirements specification
 - [x] Project scaffolding
 - [x] Database schema and migrations
-- [ ] Authentication and authorization
+- [x] Authentication and authorization
 - [ ] Vehicle and inventory APIs
 - [ ] Frontend implementation
 - [ ] Integration testing
